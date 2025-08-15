@@ -1,0 +1,3 @@
+{
+  "script": "def main():\n    return {\"message\": \"Hello, World!\", \"value\": 42}"
+}
