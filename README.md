@@ -21,12 +21,22 @@ This service allows secure execution of arbitrary Python scripts in an isolated 
 
 ## Running the Service
 
+
 ### Using Docker (Recommended)
 
+Build the image (multi-stage, minimal final image):
 ```bash
 docker build -t python-execution-service .
-docker run --privileged -p 8080:8080 python-execution-service
 ```
+
+Run the service (with nsjail sandboxing):
+```bash
+docker run --privileged -p 8080:8080 --rm -e DEBUG=1 python-execution-service
+```
+
+**Security Note:** The `--privileged` flag is required for nsjail to function fully. For production, review nsjail and Docker security documentation to minimize risk.
+
+The container runs as a non-root user (`sandboxuser`) for improved security.
 
 ### Running Locally
 
@@ -34,31 +44,22 @@ docker run --privileged -p 8080:8080 python-execution-service
 
 2. Install dependencies:
     ```bash
-    pip install -r requirements.txt
+    pip install -r requirements.txt numpy pandas
     ```
 
-3. Ensure you have numpy and pandas installed
+3. Set `PYTHON_PATH` to point to your local Python interpreter if necessary:
     ```bash
-    pip install numpy pandas
+    export PYTHON_PATH=$(which python)
     ```
-
-4. Update the python path in `app/utils.py` to point to your local Python interpreter if necessary.
-    ```bash
-    sed -i "s|/usr/local/bin/python|$(which python)|g" app/utils.py
-    ```
-
-    > ⚠️ **Note**: Remember to revert back this change after testing. Else it will break the code.
 
     > ⚠️ **Note**: If you are using a virtual environment, make sure it is activated before running the above command.
 
-5. Run the service:
+4. Run the service:
     ```bash
-    python -m app.main
+    DEBUG=1 python -m src.main
     ```
 
 ## API Usage
-
-### Execute a Python Script
 
 ```bash
 curl -X GET http://localhost:8080/health

@@ -1,47 +1,51 @@
+# --- Build stage ---
+FROM python:3.12-slim AS build
+
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
+    git \
+    gcc \
+    g++ \
+    make \
+    autoconf \
+    bison \
+    flex \
+    libtool \
+    pkg-config \
+    libprotobuf-dev \
+    libnl-route-3-dev \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build nsjail
+RUN git clone --depth=1 https://github.com/google/nsjail /tmp/nsjail \
+    && cd /tmp/nsjail \
+    && make \
+    && cp nsjail /usr/local/bin/ \
+    && cd / \
+    && rm -rf /tmp/nsjail
+
+# --- Final stage ---
 FROM python:3.12-slim
 
-# Install run-time dependencies in base image
-RUN apt-get -y update && apt-get install -y \
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
     libc6 \
     libstdc++6 \
     libprotobuf32 \
     libnl-route-3-200 \
-    autoconf \
-    bison \
-    flex \
-    gcc \
-    g++ \
-    git \
-    libprotobuf-dev \
-    libnl-route-3-dev \
-    libtool \
-    make \
-    pkg-config \
-    protobuf-compiler
+    && rm -rf /var/lib/apt/lists/*
 
-# Build and install nsjail
-RUN git clone https://github.com/google/nsjail  \
-    && cd nsjail \
-    && make \
-    && cp nsjail /usr/local/bin/ \
-    && cd / \
-    && rm -rf nsjail
+# Copy nsjail from build stage
+COPY --from=build /usr/local/bin/nsjail /usr/local/bin/nsjail
 
-# Create chroot environment with debootstrap
-RUN pip install pandas numpy
-
-# Install Python dependencies for the Flask app
 COPY requirements.txt /app/requirements.txt
 WORKDIR /app
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt numpy pandas
 
-COPY app /app/app
+COPY src /app/src
 
-# Create non-privileged user
 RUN useradd -u 9999 -U -m sandboxuser
+USER sandboxuser
 
-# Expose port
 EXPOSE 8080
 
-# Run the application
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-m", "src.main"]
