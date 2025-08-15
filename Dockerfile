@@ -44,4 +44,4 @@ RUN useradd -u 9999 -U -m sandboxuser
 EXPOSE 8080
 
 # Run the application
-CMD ["python", "/app/app/main.py"]
+CMD ["python", "-m", "app.main"]
